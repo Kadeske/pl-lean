@@ -699,7 +699,19 @@ theorem leN_antisymm : ∀ n m, leN n m → leN m n → eqN n m := by
           --Altrimenti avrei dovuto scrivere 'induction n generalizing m with'
   induction n with 
     | zero =>  
-
+        intro m h1 h2
+        cases m with
+          | zero => rfl
+          | succ m' => cases h2 -- l'unico modo per cui h2 sia true è che n = m (l'unico costruttore sarebbe Eq.refl a = a
+                                -- genera quindi 0 sottocasi, di conseguenza chiude la dimostrazione
+    | succ n' ih => 
+        intro m h1 h2 
+        cases m with 
+          | zero => cases h1
+          | succ m' => 
+              rw [leN] at h1 h2
+              rw [eqN]
+              exact ih m' h1 h2 
 /-
 ### Exercise: Subtracting a number from itself
 
@@ -716,7 +728,11 @@ def subN : Nat → Nat → Nat
 -/
 
 theorem subN_self (n : Nat) : subN n n = 0 := by
-  sorry
+  induction n with 
+  | zero => rfl
+  | succ n' ih => 
+    rw [subN]
+    exact ih
 
 
 /-
@@ -729,7 +745,12 @@ Hint: `simp` knows that `!` is involutive.
 -/
 
 theorem isEven_succ (n: Nat) : isEven (n+1) = !(isEven n) := by
-  sorry
+  induction n with 
+  | zero => rfl
+  | succ n' ih => 
+      simp [isEven]
+      rw [ih]
+      simp
 
 
 /-
@@ -741,7 +762,12 @@ Hint: by induction on `n`.
 -/
 
 theorem isEven_doubleN (n: Nat) : isEven (doubleN n) := by
-  sorry
+  induction n with 
+  | zero => rfl
+  | succ n' ih => 
+      simp [doubleN]
+      simp [isEven]
+      exact ih
 
 
 /-
@@ -754,7 +780,13 @@ hypothesis, `addN_succ_right`, and `addN_succ_left`.
 -/
 
 theorem doubleN_addN (n: Nat) : doubleN n = addN n n := by
-  sorry
+  induction n with 
+  | zero => rfl
+  | succ n' ih => 
+    rw [addN_succ_left, addN_succ_right]
+    rw [doubleN]
+    rw [ih]
+    
 
 
 /-
@@ -776,7 +808,18 @@ After the case split, both sides compute to the same Boolean expression, so
 
 theorem evalBExp_dual (t : BExp) :
     evalBExp (dualBExp t) = !(evalBExp t) := by
-  sorry
+  induction t with 
+  | btrue => 
+      rw [dualBExp]
+      rw [evalBExp, evalBExp] 
+      simp
+  | bfalse =>  
+      rw [dualBExp]
+      rw [evalBExp, evalBExp] 
+      simp
+  | bifte t0 t1 t2 ih0 ih1 ih2 => 
+      simp [dualBExp]
+      sorry -- da finire 
 
 
 /-
