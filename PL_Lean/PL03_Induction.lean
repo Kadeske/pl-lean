@@ -293,7 +293,7 @@ This does not require induction.  Use `addN_succ_right` and `addN_succ_left`.
 -/
 
 theorem addN_self_succ (n : Nat) : addN (n + 1) (n + 1) = addN n n + 1 + 1 := by
-  sorry
+  simp [addN_succ_right, addN_succ_left]
 
 /-
 ### Exercise: Associativity of addN
@@ -307,7 +307,11 @@ Hint: induction on `k`.  In the successor case, unfold the additions with
 -/
 
 theorem addN_assoc (n m k : Nat) : addN (addN n m) k = addN n (addN m k) := by
-  sorry
+  induction k with 
+   | zero => rfl 
+   | succ k' ih => 
+      simp [addN_succ_right] --rw 3 volte
+      rw[ih]
 
 /-
 ### Exercise: Zero is left-absorbing for mulN
@@ -320,8 +324,16 @@ Hint: induct on `n`.  In the successor case, rewrite with
 holds by computation.
 -/
 
+#check mulN_succ_right
+#print mulN 
+
 theorem mulN_zero_left (n : Nat) : mulN 0 n = 0 := by
-  sorry
+  induction n with 
+   | zero => rfl 
+   | succ n' ih => 
+      rw [mulN_succ_right]
+      rw[ih]
+      rfl
 
 
 /-
@@ -338,7 +350,14 @@ hypothesis.  The remaining equality follows by computation.
 #check mulN_succ_right
 
 theorem mulN_one_left (n : Nat) : mulN 1 n = n := by
-  sorry
+  induction n with 
+   | zero => rfl 
+   | succ n' ih =>
+     rw [mulN_succ_right] 
+     rw [ih]
+     rfl 
+     
+    
 
 
 /-
@@ -372,9 +391,21 @@ Infoview.  The proof has three phases.
    `addN x (addN _ _)`, and `addN_comm` with explicit arguments to swap
    `m'` and `n`.
 -/
+#check addN_comm 
 
 theorem mulN_succ_left (n m : Nat) : mulN (n + 1) m = addN (mulN n m) m := by
-  sorry
+  induction m with 
+   | zero => rfl
+   | succ m' ih => 
+        rw[mulN_succ_right]
+        rw[mulN_succ_right]
+        rw[ih]
+        rw[addN_succ_right]
+        rw[addN_succ_right]
+        rw[addN_assoc]
+        rw[addN_assoc]
+        rw[addN_comm m' n] 
+
 
 
 /-
@@ -388,8 +419,18 @@ Hint: in the inductive case, exploit `mulN_succ_right` and `mulN_succ_left`.
 -/
 
 theorem mulN_comm (n m : Nat) : mulN n m = mulN m n := by
-  sorry
-
+  induction n with 
+   | zero => 
+        induction m with
+          | zero => rfl
+          | succ m' ih=> 
+              rw [mulN_succ_right]
+              rw [mulN_succ_left]
+              rw[ih]
+   | succ n' ih => 
+        rw [mulN_succ_right] 
+        rw [mulN_succ_left]
+        rw[ih]
 
 /-
 ### Exercise: Multiplication distributes over addition (left)
@@ -411,7 +452,19 @@ and `mulN` can then unfold.  So the natural choice is induction on `c`.
 -/
 
 theorem mulN_addN_distrib_left (a b c : Nat) : mulN a (addN b c) = addN (mulN a b) (mulN a c) := by
-  sorry
+  induction c with 
+   | zero => 
+      rw [mulN_comm] 
+      rw [mulN_zero_right]
+      rw [addN_zero]
+      rw [addN_zero]
+      rw [mulN_comm]
+   | succ c' ih => 
+      rw [addN_succ_right]
+      rw [mulN_succ_right]
+      rw [mulN_succ_right]
+      rw [<- addN_assoc ]
+      rw [ih]
 
 
 /-
@@ -427,7 +480,26 @@ definition usually leads to a clearer proof.
 
 theorem mulN_addN_distrib_left_by_first_arg (a b c : Nat) :
     mulN a (addN b c) = addN (mulN a b) (mulN a c) := by
-  sorry
+    induction a with -- forzata su a 
+      | zero => 
+        simp [mulN_comm]
+        simp [mulN_zero_right]
+        rfl
+      | succ a' ih => 
+        rw [mulN_succ_left]
+        rw [mulN_succ_left]
+        rw [mulN_succ_left]
+        rw [addN_assoc]
+        rw [<-addN_assoc]
+        rw [<-addN_assoc]
+        rw [<-addN_assoc]
+        rw [addN_comm (mulN a' b) b]
+        rw [addN_assoc b (mulN a' b) (mulN a' c)]
+        rw [<-ih]
+        rw [addN_comm b (mulN a' (addN b c))] 
+        
+
+        
 
 
 /-
@@ -441,7 +513,19 @@ Hint: in the inductive case, exploit `mulN_addN_distrib_left`.
 -/
 
 theorem mulN_assoc (n m k : Nat) : mulN (mulN n m) k = mulN n (mulN m k) := by
-  sorry
+  induction n with 
+  | zero => 
+      rw [mulN_zero_left, mulN_zero_left, mulN_zero_left]
+  | succ n' ih => 
+      rw [mulN_succ_left]
+      rw [mulN_succ_left]
+      rw [<- ih]
+      rw [mulN_comm ] 
+      rw [mulN_addN_distrib_left]
+      rw [mulN_comm ]
+      rw [ih]
+      rw [mulN_comm m k]
+      
 
 
 /-
@@ -454,7 +538,10 @@ Prove that `eqN` is reflexive.  Hint: proceed by induction on `a`, and use the
 -/
 
 theorem eqN_refl (a : Nat) : eqN a a = true := by
-  sorry
+  induction a with 
+  | zero => rfl
+  | succ a' ih => 
+      exact ih
 
 
 /-
@@ -473,7 +560,9 @@ def leN : Nat → Nat → Bool
 -/
 
 theorem leN_refl (n : Nat) : leN n n = true := by
-  sorry
+  induction n with 
+  | zero => rfl
+  | succ n' ih=> exact ih
 
 
 /-
@@ -488,6 +577,7 @@ numbers is preserved by incrementing the right term:
 
 theorem leN_succ_right_sorry (a b : Nat) :
   leN a b = true → leN a (b + 1) = true := by
+
 
 /-
 The proof is more delicate than the others with standard induction as it
@@ -575,12 +665,22 @@ Hint: induction on `b` generalizing `a`. In the inductive case,
 do case-analysis on `a`.
 -/
 theorem leN_succ_left (a b : Nat) : leN (a + 1) b = true → leN a b = true := by
-  sorry
+  intro h
+  induction b generalizing a with 
+  | zero => cases a with
+        | zero => rfl
+        | succ a' => exact h 
+  | succ b' ih => cases a with 
+        | zero => rfl
+        | succ a' => 
+          rw [leN_succ_right]
+          rw [leN] at h
+          exact h
 
 /-
 ### Exercise: Antisymmetricity of leN
 
-**Difficulty: 4/4 (challenge).**
+**Difficulty: 4/4 (challenge).** ora mi ammazzo sio cane dottor culocane (lo pusherò su github)
 
 Prove that `leN` is antisymmetric.
 
@@ -595,8 +695,10 @@ quantified.
 -/
 
 theorem leN_antisymm : ∀ n m, leN n m → leN m n → eqN n m := by
-  sorry
-
+  intro n -- non facendo intro m, m rimane generalizzata (quantificata universalmente). 
+          --Altrimenti avrei dovuto scrivere 'induction n generalizing m with'
+  induction n with 
+    | zero =>  
 
 /-
 ### Exercise: Subtracting a number from itself
