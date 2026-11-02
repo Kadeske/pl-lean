@@ -818,8 +818,11 @@ theorem evalBExp_dual (t : BExp) :
       rw [evalBExp, evalBExp] 
       simp
   | bifte t0 t1 t2 ih0 ih1 ih2 => 
-      simp [dualBExp]
-      sorry -- da finire 
+      simp only [dualBExp, evalBExp]
+      rw [ih0, ih1, ih2]
+      cases h : evalBExp t0 with 
+        | false => rfl 
+        | true => rfl 
 
 
 /-
@@ -859,15 +862,20 @@ inductive BExpConn where
 /-
 __Exercise (difficulty 1/4):__ Define the evaluation function for `BExpConn`.
 -/
-def evalBExpConn : BExpConn → Bool := sorry
+def evalBExpConn : BExpConn → Bool := fun b => match b with 
+  | BExpConn.btrue => true
+  | BExpConn.bnot t => !(evalBExpConn t) 
+  | BExpConn.band t0 t1 => (evalBExpConn t0) && (evalBExpConn t1)
+  | BExpConn.bor t0 t1 => (evalBExpConn t0) || (evalBExpConn t1)
+
 
 example :
     let ex0 := .band (.bor (.bnot .btrue) .btrue) .btrue
-    evalBExpConn ex0 = true := by sorry
+    evalBExpConn ex0 = true := by rfl
 
 example :
     let ex1 := .band (.bor (.bnot .btrue) .btrue) (.bnot .btrue)
-    evalBExpConn ex1 = false := by sorry
+    evalBExpConn ex1 = false := by rfl 
 
 /-
 Every connective can be expressed with a conditional:
@@ -880,18 +888,22 @@ __Exercise (difficulty 2/4):__ Define a function `bexpconn_to_bexp` that transla
 `BExpConn` terms into `BExp` terms, following the intuition above.
 -/
 
-def bexpconn_to_bexp : BExpConn → BExp := sorry
+def bexpconn_to_bexp : BExpConn → BExp := fun b => match b with 
+  | BExpConn.btrue => BExp.btrue 
+  | BExpConn.bnot a => BExp.bifte (bexpconn_to_bexp a) BExp.bfalse BExp.btrue 
+  | BExpConn.band a b => BExp.bifte (bexpconn_to_bexp a) (bexpconn_to_bexp b) BExp.bfalse 
+  | BExpConn.bor a b => BExp.bifte (bexpconn_to_bexp a) BExp.btrue (bexpconn_to_bexp b) 
 
 
 -- __Exercise (difficulty 1/4):__ Test the translation on the two examples above.
 
 example :
     let ex0 := .band (.bor (.bnot .btrue) .btrue) .btrue
-    evalBExpConn ex0 = evalBExp (bexpconn_to_bexp ex0) := by sorry
+    evalBExpConn ex0 = evalBExp (bexpconn_to_bexp ex0) := by rfl 
 
 example :
     let ex1 := .band (.bor (.bnot .btrue) .btrue) (.bnot .btrue)
-    evalBExpConn ex1 = evalBExp (bexpconn_to_bexp ex1) := by sorry
+    evalBExpConn ex1 = evalBExp (bexpconn_to_bexp ex1) := by rfl 
 
 /-
 __Exercise (difficulty 3/4):__ Prove that the translation preserves the meaning:
@@ -906,7 +918,15 @@ equation for `e`, allowing the surrounding conditional to compute.
 -/
 
 theorem bexpconn_equiv_bexp (t : BExpConn) : evalBExpConn t = evalBExp (bexpconn_to_bexp t) := by
-  sorry
+  induction t with 
+    | btrue  => rw [evalBExpConn , bexpconn_to_bexp, evalBExp ]
+    | bnot t ih => 
+        simp [bexpconn_to_bexp, evalBExp, evalBExpConn]
+        exact ih
+    | band t0 t1 ih0 ih1 =>
+        simp [evalBExpConn, ih0, ih1, evalBExp, bexpconn_to_bexp]
+    | bor t0 t1 ih0 ih1 => 
+        simp [evalBExpConn, ih0, ih1, evalBExp, bexpconn_to_bexp]
 
 end Exercises
 
@@ -927,7 +947,7 @@ binary numbers with three constructors:
     b0 n      append the digit 0:  the number 2 * n
     b1 n      append the digit 1:  the number 2 * n + 1
 
-The least significant digit is the *outermost* constructor.  For example:
+The least significant digit is the *outermost* constructor.  For example:  -- QUINDI SONO AL CONTRARIO
 
     0  =  bz
     1  =  b1 bz
@@ -979,9 +999,13 @@ def twentyfour := six'.b0.b0
 Write a function `binToNat` that converts a `BinNat` into a `Nat`.
 -/
 
-def binToNat : BinNat → Nat := sorry
+def binToNat : BinNat → Nat := fun b => match b with 
+| BinNat.bz => 0 
+| BinNat.b0 n => (binToNat n) * 2
+| BinNat.b1 n => (binToNat n) *2 +1
 
-example : binToNat bz.b1.b1.b0 = 6 := by sorry
+example : binToNat bz.b1.b1.b0 = 6 := by rfl
+example : binToNat  bz.b1.b1.b1 = 7 := by rfl
 
 
 /-
@@ -993,11 +1017,21 @@ Write a function `binIncr` that adds one *directly on numerals*, as in a binary 
 * zero becomes `1`;
 * a numeral ending in `0` has its last digit changed to `1`;
 * a numeral ending in `1` becomes `0` and *carries* to the rest.
+
+incr 01 -> 10  - se finisce con 1, metto 0 al suo posto e riporto (ricorsione)
+incr 0101 -> 0110 
+
+incr 10 -> 11  - se finisce con 0. lo 0 diventa 1
+
 -/
 
-def binIncr : BinNat → BinNat := sorry
+def binIncr : BinNat → BinNat := fun b => match b with 
+| BinNat.bz => BinNat.b1 bz
+| BinNat.b0 n => BinNat.b1 n 
+| BinNat.b1 n => BinNat.b0 (binIncr n)
 
-example : binToNat (binIncr bz.b1.b1.b0) = 7 := by sorry
+example : binToNat (binIncr bz.b1.b0.b1) = 6 := by rfl 
+example : binToNat (binIncr bz.b1.b1.b0) = 7 := by rfl 
 
 /-
 ### Task 3: Converting natural to binary
@@ -1008,10 +1042,13 @@ Write a function `natToBin` that converts a `Nat` into a `BinNat`
 by counting up from zero.
 -/
 
-def natToBin : Nat → BinNat := sorry
+def natToBin : Nat → BinNat 
+  | Nat.zero => BinNat.bz
+  | Nat.succ n => binIncr (natToBin n)
 
-example : natToBin 6 = bz.b1.b1.b0 := by sorry
-example : natToBin 11 = bz.b1.b0.b1.b1 := by sorry
+
+example : natToBin 6 = bz.b1.b1.b0 := by rfl 
+example : natToBin 11 = bz.b1.b0.b1.b1 := by rfl 
 
 
 /-
@@ -1033,7 +1070,7 @@ Prove that the diagram *commutes*, that is the two paths to b' are equivalent.
 -/
 
 theorem natToBin_succ (n : Nat) : natToBin (n + 1) = binIncr (natToBin n) := by
-  sorry
+  simp [natToBin]
 
 
 /-
@@ -1049,11 +1086,14 @@ converting to `Nat`.  Zero must stay `bz` (we do not want a leading zero digit):
     binDouble (b1 n) = b0 (b1 n)
 -/
 
-def binDouble : BinNat → BinNat := sorry
+def binDouble : BinNat → BinNat 
+| BinNat.bz => bz 
+| b => BinNat.b0 b
 
-example : binDouble .bz = .bz := by sorry
-example : binDouble (.b1 .bz) = .b0 (.b1 .bz) := by sorry
-example : binToNat (binDouble (.b1 (.b1 .bz))) = 6 := by sorry
+
+example : binDouble .bz = .bz := by rfl 
+example : binDouble (.b1 .bz) = .b0 (.b1 .bz) := by rfl 
+example : binToNat (binDouble (.b1 (.b1 .bz))) = 6 := by rfl 
 
 
 /-
@@ -1067,7 +1107,15 @@ Hint: no induction is needed.  There are three constructors, so use `cases`.
 
 theorem binToNat_binDouble (b : BinNat) :
     binToNat (binDouble b) = 2 * binToNat b := by
-  sorry
+  cases b with 
+  | bz => rfl
+  | b0 n => 
+    simp [binDouble, binToNat]
+    omega
+  | b1 n => 
+    simp [binDouble, binToNat]
+    omega
+    
 
 /-
 ### Task 7: Correctness of binary increment (2)
@@ -1095,7 +1143,15 @@ does not replace the induction.
 
 theorem binToNat_binIncr (b : BinNat) :
     binToNat (binIncr b) = binToNat b + 1 := by
-  sorry
+
+    induction b with 
+    | bz => rfl
+    | b0 n => 
+      simp [binIncr, binToNat]
+    | b1 n ih=>
+      simp [binIncr, binToNat ]
+      omega
+
 
 
 /-
@@ -1111,7 +1167,11 @@ Hint: induction on `n`.  The successor case needs `natToBin_succ`,
 -/
 
 theorem binToNat_natToBin (n : Nat) : binToNat (natToBin n) = n := by
-  sorry
+  induction n with 
+  | zero => rfl 
+  | succ n' ih => 
+    rw [natToBin_succ, binToNat_binIncr]
+    rw [ih]
 
 
 /-
@@ -1138,12 +1198,12 @@ Replace the `sorry`'s below with `rfl` to check that your `normalize`
 behaves correctly.
 -/
 
-example : normalize bz.b0 = bz := by sorry
-example : normalize bz.b0.b0.b0.b1 = bz.b1 := by sorry
-example : normalize six = six := by sorry
+example : normalize bz.b0 = bz := by rfl 
+example : normalize bz.b0.b0.b0.b1 = bz.b1 := by rfl 
+example : normalize six = six := by rfl 
 
-example : binToNat (normalize bz.b0.b0.b0.b1) = 1 := by sorry
-example : binToNat (normalize six) = 9 := by sorry
+example : binToNat (normalize bz.b0.b0.b0.b1) = 1 := by rfl 
+example : binToNat (normalize six) = 6 := by rfl 
 
 /-
 We can define a function that tests if a binary number has one or more
@@ -1180,8 +1240,10 @@ Hint: induction not necessary, simplify by the definitions `binDouble` and `binI
 -/
 theorem binIncr_binDouble (b : BinNat) :
     binDouble (binIncr b) = binIncr (binIncr (binDouble b)) := by
-  sorry
-
+  cases b with 
+  | bz => rfl
+  | b0 n => simp [binDouble, binIncr]
+  | b1 n => simp [binDouble, binIncr]
 
 /-
 #### Sub-task 2 - Difficulty: 3/4 (standard induction and linear algebra).
@@ -1195,7 +1257,11 @@ and `natToBin`, then rewrite with the IH and `binIncr_binDouble`.
 -/
 theorem binDouble_binToNat (n : Nat) :
     binDouble (natToBin n) = natToBin (2 * n) := by
-  sorry
+  induction n with 
+  | zero => rfl 
+  | succ n' ih => 
+    simp [Nat.mul_succ, natToBin, binIncr_binDouble]
+    rw [ih]
 
 
 /-
@@ -1209,7 +1275,12 @@ This will help you prove one of the inductive cases of the boss theorem.
 
 theorem binDouble_hasLeadingZeros (b : BinNat) :
     hasLeadingZeros (binDouble b) = hasLeadingZeros b := by
-  sorry
+   induction b with 
+   | bz => rfl 
+   | b0 n ih => 
+      simp [binDouble, hasLeadingZeros ]
+   | b1 n ih => 
+      simp [binDouble, hasLeadingZeros ] 
 
 
 /-
@@ -1232,7 +1303,31 @@ Hints:
 
 theorem normalize_smallest (b : BinNat) :
     hasLeadingZeros (normalize b) = false := by
-  sorry
+    induction b with 
+    | bz => rfl 
+    | b0 b' ih => 
+      rw [normalize]
+      simp only [binToNat]
+      rw [Nat.mul_comm]
+      rw [<-binDouble_binToNat]
+      rw [binDouble_hasLeadingZeros]
+      exact ih
+    | b1 b' ih => 
+      rw [normalize] 
+      simp only [binToNat]
+      rw [Nat.mul_comm, natToBin_succ, ← binDouble_binToNat]
+      unfold normalize at ih 
+      cases eq : natToBin (binToNat b') with 
+      | bz => rfl
+      | b0 y => 
+        rw [eq] at ih
+        simpa [binDouble, binIncr, hasLeadingZeros] using ih
+      | b1 y => 
+        rw [eq] at ih
+        simpa [binDouble, binIncr, hasLeadingZeros] using ih
 
+
+      
+      
 
 end Binary_numbers
